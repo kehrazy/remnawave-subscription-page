@@ -28,7 +28,7 @@ export function OpenVpnWidget() {
                         <Text>{profile.name} · {profile.protocol.toUpperCase()}</Text>
                         <Button
                             component="a"
-                            download
+                            download={`${profile.name}.ovpn`}
                             href={profile.url}
                             leftSection={<IconDownload size={16} />}
                             size="xs"

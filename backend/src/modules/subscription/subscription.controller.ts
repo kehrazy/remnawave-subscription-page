@@ -33,16 +33,32 @@ export class SubscriptionController {
         @Res() response: Response,
     ) {
         try {
-            const profile = await this.axiosService.axiosInstance.get<string>(
-                `/api/openvpn/subscriptions/${encodeURIComponent(resolvedShortUuid ?? shortUuid)}/${uuid}.ovpn`,
-                { responseType: 'text', timeout: 30_000 },
-            );
-            return response.set({
-                'Cache-Control': 'no-store',
-                'Content-Type': 'application/x-openvpn-profile',
-                'Content-Disposition': `attachment; filename="openvpn-${uuid}.ovpn"`,
-            }).send(profile.data);
+            const path = `/api/openvpn/subscriptions/${encodeURIComponent(resolvedShortUuid ?? shortUuid)}`;
+            const [profile, metadata] = await Promise.all([
+                this.axiosService.axiosInstance.get<string>(`${path}/${uuid}.ovpn`, {
+                    responseType: 'text', timeout: 30_000,
+                }),
+                this.axiosService.axiosInstance.get<{
+                    response: { uuid: string; name: string }[];
+                }>(path, { timeout: 30_000 }),
+            ]);
+            const endpoint = metadata.data.response.find((item) => item.uuid === uuid);
+            if (!endpoint) throw new HttpException('OpenVPN profile unavailable', 404);
+            const name = endpoint.name
+                .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/gu, ' ')
+                .replace(/\s+/gu, ' ')
+                .trim() || 'OpenVPN';
+            return response
+                .attachment(`${name}.ovpn`)
+                .type('application/x-openvpn-profile')
+                .set('Cache-Control', 'no-store')
+                .send([
+                    `# OVPN_ACCESS_SERVER_PROFILE=${name}`,
+                    `# OVPN_ACCESS_SERVER_FRIENDLY_NAME=${name}`,
+                    profile.data,
+                ].join('\n'));
         } catch (error) {
+            if (error instanceof HttpException) throw error;
             const status = error instanceof AxiosError ? error.response?.status : undefined;
             throw new HttpException('OpenVPN profile unavailable', status === 404 ? 404 : 502);
         }
