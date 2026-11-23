@@ -130,7 +130,7 @@ async function bootstrap(): Promise<void> {
 
     app.enableCors({
         origin: '*',
-        methods: 'GET',
+        methods: 'GET,POST,DELETE',
         credentials: false,
     });
 
