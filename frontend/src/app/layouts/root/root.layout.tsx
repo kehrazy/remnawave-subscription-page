@@ -33,7 +33,9 @@ export function RootLayout() {
             if (subscriptionUrl) {
                 try {
                     const subscription: GetSubscriptionInfoByShortUuidCommand.Response = JSON.parse(
-                        atob(subscriptionUrl)
+                        new TextDecoder().decode(
+                            Uint8Array.from(atob(subscriptionUrl), (byte) => byte.charCodeAt(0))
+                        )
                     )
 
                     subscriptionActions.setSubscriptionInfo({

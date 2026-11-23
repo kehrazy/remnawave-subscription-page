@@ -3,6 +3,9 @@ on:
   push:
     branches: [openvpn]
   workflow_dispatch:
+concurrency:
+  group: openvpn-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
