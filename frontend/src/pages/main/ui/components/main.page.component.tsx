@@ -16,6 +16,7 @@ import {
 import { useAppConfig, useAppConfigStoreActions, useCurrentLang } from '@entities/app-config-store'
 import { LanguagePicker } from '@shared/ui/language-picker/language-picker.shared'
 import { Page, RemnawaveLogo } from '@shared/ui'
+import { AmneziaWgWidget } from '@widgets/main/amneziawg/amneziawg.widget'
 import { OpenVpnWidget } from '@widgets/main/openvpn/openvpn.widget'
 
 interface IMainPageComponentProps {
@@ -128,6 +129,7 @@ export const MainPageComponent = ({ isMobile, platform }: IMainPageComponentProp
 
                     <RawKeysWidget isMobile={isMobile} />
                     <OpenVpnWidget />
+                    <AmneziaWgWidget />
 
                     <Center>
                         <LanguagePicker
