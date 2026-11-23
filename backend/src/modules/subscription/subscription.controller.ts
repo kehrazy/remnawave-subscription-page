@@ -65,22 +65,26 @@ export class SubscriptionController {
         const extension = vpnProtocol === 'openvpn' ? 'ovpn' : 'conf';
         try {
             const path = `/api/${vpnProtocol}/subscriptions/${encodeURIComponent(resolvedShortUuid ?? shortUuid)}`;
-            const [profile, metadata] = await Promise.all([
+            const [profile, metadata, devices] = await Promise.all([
                 this.axiosService.axiosInstance.get<string>(`${path}/${uuid}.${extension}`, {
                     responseType: 'text', timeout: 30_000, params: { device },
                 }),
                 this.axiosService.axiosInstance.get<{
                     response: { uuid: string; name: string }[];
                 }>(path, { timeout: 30_000 }),
+                vpnProtocol === 'amneziawg' && device && device !== 'default'
+                    ? this.axiosService.axiosInstance.get<{ response: { uuid: string; name: string }[] }>(`${path}/devices`, { timeout: 30_000 })
+                    : undefined,
             ]);
             const endpoint = metadata.data.response.find((item) => item.uuid === uuid);
             if (!endpoint) throw new HttpException('VPN profile unavailable', 404);
-            const name = endpoint.name
+            const deviceName = devices?.data.response.find((item) => item.uuid === device)?.name;
+            const name = (deviceName ? `${endpoint.name} (${deviceName})` : endpoint.name)
                 .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/gu, ' ')
                 .replace(/\s+/gu, ' ')
                 .trim() || (vpnProtocol === 'openvpn' ? 'OpenVPN' : 'AmneziaWG');
             return response
-                .attachment(`${name}${device && device !== 'default' ? '-' + device.slice(0, 8) : ''}.${extension}`)
+                .attachment(`${name}.${extension}`)
                 .type(vpnProtocol === 'openvpn' ? 'application/x-openvpn-profile' : 'text/plain')
                 .set('Cache-Control', 'no-store')
                 .send(vpnProtocol === 'amneziawg' ? profile.data : [
