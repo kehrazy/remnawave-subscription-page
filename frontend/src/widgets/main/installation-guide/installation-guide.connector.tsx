@@ -1,9 +1,4 @@
 import {
-    TSubscriptionPageAppConfig,
-    TSubscriptionPageButtonConfig,
-    TSubscriptionPagePlatformKey
-} from '@remnawave/subscription-page-types'
-import {
     Box,
     Button,
     ButtonVariant,
@@ -14,21 +9,28 @@ import {
     Title,
     UnstyledButton
 } from '@mantine/core'
-import { notifications } from '@mantine/notifications'
 import { useClipboard } from '@mantine/hooks'
-import { useState } from 'react'
+import { notifications } from '@mantine/notifications'
+import {
+    TSubscriptionPageAppConfig,
+    TSubscriptionPageButtonConfig,
+    TSubscriptionPagePlatformKey
+} from '@remnawave/subscription-page-types'
 import clsx from 'clsx'
+import { useState } from 'react'
 
-import { constructSubscriptionUrl } from '@shared/utils/construct-subscription-url'
-import { useSubscription } from '@entities/subscription-info-store'
-import { getIconFromLibrary } from '@shared/utils/config-parser'
-import { TemplateEngine } from '@shared/utils/template-engine'
-import { useAppConfig } from '@entities/app-config-store'
-import { vibrate } from '@shared/utils/vibrate'
 import { useTranslation } from '@shared/hooks'
+import { getIconFromLibrary } from '@shared/utils/config-parser'
+import { constructSubscriptionUrl } from '@shared/utils/construct-subscription-url'
+import { TemplateEngine } from '@shared/utils/template-engine'
+import { vibrate } from '@shared/utils/vibrate'
+
+import { useAppConfig } from '@entities/app-config-store'
+import { useSubscription } from '@entities/subscription-info-store'
 
 import { IBlockRendererProps } from './components/blocks/renderer-block.interface'
 import classes from './installation-guide.module.css'
+import { NativeProfileSelection } from './native-profile-selection'
 
 export type TBlockVariant = 'accordion' | 'cards' | 'minimal' | 'timeline'
 
@@ -48,6 +50,10 @@ export const InstallationGuideConnector = (props: IProps) => {
     const { copy } = useClipboard({ timeout: 2_000 })
     const subscription = useSubscription()
 
+    const [nativeEngine, setNativeEngine] = useState<'openvpn' | 'amneziawg' | null>(null)
+    const nativeApps = (['openvpn', 'amneziawg'] as const).filter((engine) =>
+        subscription.connectionProfiles.some((profile) => profile.engine === engine)
+    )
     const [selectedAppIndex, setSelectedAppIndex] = useState(0)
     const [selectedPlatform, setSelectedPlatform] = useState<TSubscriptionPagePlatformKey>(() => {
         if (platform && hasPlatformApps[platform]) {
@@ -185,6 +191,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                                     .value as unknown as TSubscriptionPagePlatformKey
                                 setSelectedPlatform(value)
                                 setSelectedAppIndex(0)
+                                setNativeEngine(null)
                             }}
                             radius="md"
                             size="sm"
@@ -198,7 +205,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                     <Box>
                         <div className={classes.appsGrid}>
                             {platformApps.map((app: TSubscriptionPageAppConfig, index: number) => {
-                                const isActive = index === selectedAppIndex
+                                const isActive = !nativeEngine && index === selectedAppIndex
                                 const hasIcon = Boolean(app.svgIconKey)
 
                                 return (
@@ -212,6 +219,7 @@ export const InstallationGuideConnector = (props: IProps) => {
                                         onClick={() => {
                                             vibrate('toggle')
                                             setSelectedAppIndex(index)
+                                            setNativeEngine(null)
                                         }}
                                     >
                                         {app.featured && <span className={classes.featuredBadge} />}
@@ -233,17 +241,38 @@ export const InstallationGuideConnector = (props: IProps) => {
                                     </UnstyledButton>
                                 )
                             })}
+                            {nativeApps.map((engine) => (
+                                <UnstyledButton
+                                    key={engine}
+                                    className={clsx(
+                                        classes.appButton,
+                                        nativeEngine === engine && classes.appButtonActive
+                                    )}
+                                    onClick={() => {
+                                        vibrate('toggle')
+                                        setNativeEngine(engine)
+                                    }}
+                                >
+                                    <span className={classes.appName}>
+                                        {engine === 'openvpn' ? 'OpenVPN Connect' : 'AmneziaWG'}
+                                    </span>
+                                </UnstyledButton>
+                            ))}
                         </div>
 
-                        {selectedApp && (
-                            <BlockRenderer
-                                blocks={selectedApp.blocks}
-                                currentLang={currentLang}
-                                getIconFromLibrary={getIcon}
-                                isMobile={isMobile}
-                                renderBlockButtons={renderBlockButtons}
-                                svgLibrary={svgLibrary}
-                            />
+                        {nativeEngine ? (
+                            <NativeProfileSelection key={nativeEngine} engine={nativeEngine} />
+                        ) : (
+                            selectedApp && (
+                                <BlockRenderer
+                                    blocks={selectedApp.blocks}
+                                    currentLang={currentLang}
+                                    getIconFromLibrary={getIcon}
+                                    isMobile={isMobile}
+                                    renderBlockButtons={renderBlockButtons}
+                                    svgLibrary={svgLibrary}
+                                />
+                            )
                         )}
                     </Box>
                 )}

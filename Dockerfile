@@ -7,6 +7,9 @@ COPY backend/tsconfig.build.json ./
 
 RUN npm ci --prefer-offline --no-audit --no-fund
 
+COPY .build/backend-contract.tgz /tmp/backend-contract.tgz
+RUN npm install --no-save --package-lock=false --ignore-scripts /tmp/backend-contract.tgz
+
 COPY backend/ .
 
 RUN npm run build \

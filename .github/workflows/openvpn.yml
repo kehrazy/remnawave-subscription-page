@@ -20,9 +20,24 @@ jobs:
           node-version: 24
       - run: npm ci
         working-directory: backend
+      - name: Install pinned backend contract
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(cat backend-contract-revision)
+          mkdir -p .build
+          for attempt in $(seq 1 60); do
+            if gh release download "openvpn-${revision}" --repo kehrazy/remnawave --pattern 'remnawave-backend-contract-*.tgz' --output .build/backend-contract.tgz; then break; fi
+            sleep 5
+          done
+          test -s .build/backend-contract.tgz
+      - run: npm install --no-save --package-lock=false --ignore-scripts ../.build/backend-contract.tgz
+        working-directory: backend
       - run: npx tsc --noEmit
         working-directory: backend
       - run: npm ci
+        working-directory: frontend
+      - run: npm install --no-save --package-lock=false --ignore-scripts ../.build/backend-contract.tgz
         working-directory: frontend
       - run: npm run start:build
         working-directory: frontend
@@ -33,7 +48,7 @@ jobs:
           tags: remnawave-subscription-openvpn:${{ github.sha }}
           outputs: type=docker,dest=/tmp/remnawave-subscription-openvpn.tar
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min,timeout=2m,ignore-error=true
       - name: Publish image archive
         env:
           GH_TOKEN: ${{ github.token }}
@@ -41,5 +56,5 @@ jobs:
           gzip -1 /tmp/remnawave-subscription-openvpn.tar
           cd /tmp
           sha256sum remnawave-subscription-openvpn.tar.gz > remnawave-subscription-openvpn.tar.gz.sha256
-          gh release create "openvpn-${GITHUB_SHA}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "OpenVPN ${GITHUB_SHA:0:12}" --notes "Subscription page with per-user OpenVPN downloads."
+          gh release create "openvpn-${GITHUB_SHA}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title "OpenVPN ${GITHUB_SHA:0:12}" --notes "One installation flow with typed VPN routes and per-device profiles."
           gh release upload "openvpn-${GITHUB_SHA}" remnawave-subscription-openvpn.tar.gz remnawave-subscription-openvpn.tar.gz.sha256 --repo "$GITHUB_REPOSITORY"
