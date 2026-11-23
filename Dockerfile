@@ -18,7 +18,7 @@ WORKDIR /opt/app
 LABEL org.opencontainers.image.title="Remnawave Subscription Page"
 LABEL org.opencontainers.image.description="Remnawave Subscription Page"
 LABEL org.opencontainers.image.url="https://github.com/remnawave/subscription-page"
-LABEL org.opencontainers.image.source="https://github.com/remnawave/subscription-page"
+LABEL org.opencontainers.image.source="https://github.com/kehrazy/remnawave-subscription-page"
 LABEL org.opencontainers.image.vendor="Remnawave"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 LABEL org.opencontainers.image.documentation="https://docs.rw"
